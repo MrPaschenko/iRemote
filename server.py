@@ -580,5 +580,5 @@ if __name__ == '__main__':
                 if d['vid']==f'0x{OCRU_VID:04X}': m=' ← OCRUSTAR'
                 if d['vid']==f'0x{TIQ_VID:04X}' and d['pid']==f'0x{TIQ_PID:04X}': m=' ← TIQIAA'
                 print(f"    {d['vid']}:{d['pid']} — {d['product']}{m}")
-    print(f"\n  http://localhost:5000\n{'='*52}")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    print(f"\n  http://localhost:7890\n{'='*52}")
+    socketio.run(app, host='0.0.0.0', port=7890, debug=False, allow_unsafe_werkzeug=True)
