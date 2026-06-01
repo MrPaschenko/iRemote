@@ -15,6 +15,14 @@
       href="data:application/json,%7B%22name%22%3A%22iRemote%22%2C%22short_name%22%3A%22iRemote%22%2C%22description%22%3A%22USB%20IR%20Blaster%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0f%22%2C%22theme_color%22%3A%22%230a0a0f%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'24%2024%2060%2060'%253E%253Crect%20x%3D'24'%20y%3D'24'%20width%3D'60'%20height%3D'60'%20rx%3D'12'%20fill%3D'%25231A1A2E'%2F%253E%253Cpath%20d%3D'M28%2C46%20L50%2C46%20C52%2C46%2054%2C48%2054%2C50%20L54%2C58%20C54%2C60%2052%2C62%2050%2C62%20L28%2C62%20C26%2C62%2024%2C60%2024%2C58%20L24%2C50%20C24%2C48%2026%2C46%2028%2C46%20Z'%20fill%3D'%2523FF8A50'%2F%253E%253Ccircle%20cx%3D'54'%20cy%3D'54'%20r%3D'3'%20fill%3D'%2523FFAB40'%2F%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D"
     />
     <title>iRemote — USB IR Blaster</title>
+    <script>
+      // Apply saved theme before first paint to avoid flash
+      (function () {
+        if (localStorage.getItem('iremote_theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
     <link
       rel="icon"
       type="image/svg+xml"
@@ -51,6 +59,63 @@
         --radius-sm: 6px;
         --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         --shadow-glow: 0 0 30px rgba(108, 92, 231, 0.15);
+      }
+
+      html[data-theme="light"] {
+        --bg: #f4f4fb;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f8f8ff;
+        --bg-input: #ededf8;
+        --border: #d0d0e8;
+        --border-glow: #b0b0d0;
+        --text: #1a1a2e;
+        --text-dim: #505068;
+        --text-muted: #8888a0;
+        --accent-glow: #5a4dd0;
+        --accent-dim: rgba(108, 92, 231, 0.1);
+        --success: #00a8a4;
+        --success-dim: rgba(0, 168, 164, 0.1);
+        --danger: #d64040;
+        --danger-dim: rgba(214, 64, 64, 0.1);
+        --warning: #b8860b;
+        --warning-dim: rgba(184, 134, 11, 0.1);
+        --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        --shadow-glow: 0 0 30px rgba(108, 92, 231, 0.1);
+      }
+
+      html[data-theme="light"] .header {
+        background: linear-gradient(135deg, #ffffff 0%, #ededf8 100%);
+      }
+
+      html, body {
+        transition: background-color 0.2s, color 0.2s;
+      }
+
+      /* ═══ THEME TOGGLE ═══ */
+      .theme-toggle {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--bg-card);
+        color: var(--text-dim);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .theme-toggle:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--bg-card-hover);
+      }
+      .theme-toggle svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
       }
 
       * {
@@ -1460,6 +1525,14 @@
             <span id="statusText">No device</span>
           </div>
         </div>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+          <svg id="themeIconSun" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 4.5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 12 4.5zm0 12a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75zm7.5-7.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5a.75.75 0 0 1 .75.75zM6.75 12a.75.75 0 0 1-.75.75H4.5a.75.75 0 0 1 0-1.5H6a.75.75 0 0 1 .75.75zm10.06-5.69a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0zM8.31 15.63a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0zm8.44 1.06a.75.75 0 0 1-1.06 0l-1.06-1.06a.75.75 0 0 1 1.06-1.06l1.06 1.06a.75.75 0 0 1 0 1.06zM8.31 8.37a.75.75 0 0 1-1.06 0L6.19 7.31a.75.75 0 0 1 1.06-1.06l1.06 1.06a.75.75 0 0 1 0 1.06zM12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5z"/>
+          </svg>
+          <svg id="themeIconMoon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none">
+            <path d="M21.75 12A9.75 9.75 0 0 1 8.25 21.4a.75.75 0 0 1 .08-1.44A8.25 8.25 0 0 0 12 3.75a8.19 8.19 0 0 0-3.67.86.75.75 0 0 1-.94-1.07A9.75 9.75 0 0 1 21.75 12z"/>
+          </svg>
+        </button>
         <div class="header-actions">
           <button
             class="btn btn-tiqiaa"
@@ -2673,6 +2746,23 @@
         a.href = URL.createObjectURL(blob);
         a.download = 'iremote_log.txt';
         a.click();
+      }
+
+      // ── Theme toggle ──
+      (function () {
+        if (document.documentElement.dataset.theme === 'light') {
+          document.getElementById('themeIconSun').style.display = 'none';
+          document.getElementById('themeIconMoon').style.display = '';
+        }
+      })();
+
+      function toggleTheme() {
+        const html = document.documentElement;
+        const isLight = html.dataset.theme === 'light';
+        html.dataset.theme = isLight ? 'dark' : 'light';
+        localStorage.setItem('iremote_theme', html.dataset.theme);
+        document.getElementById('themeIconSun').style.display = isLight ? '' : 'none';
+        document.getElementById('themeIconMoon').style.display = isLight ? 'none' : '';
       }
 
       // ── Tabs ──
