@@ -1,0 +1,1819 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iRemote Lite — USB IR Blaster</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231A1A2E'/%3E%3Cpath d='M20,30 L44,30 C46,30 48,32 48,34 L48,46 C48,48 46,50 44,50 L20,50 C18,50 16,48 16,46 L16,34 C16,32 18,30 20,30 Z' fill='%23FF8A50'/%3E%3Ccircle cx='42' cy='40' r='3' fill='%23FFAB40'/%3E%3Cpath d='M30,20 A14,14 0 0,1 30,12' stroke='%23FFAB40' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <script>
+      // Resolve theme before first paint. Saved choice wins; else follow the browser.
+      (function () {
+        var saved = localStorage.getItem('iremote_lite_theme');
+        var theme =
+          saved ||
+          (window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: light)').matches
+            ? 'light'
+            : 'dark');
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --surface: #14141d;
+        --surface-2: #1c1c28;
+        --border: #2a2a38;
+        --text: #e7e7ef;
+        --muted: #8b8b9e;
+        --accent: #0984e3;
+        --accent-soft: rgba(9, 132, 227, 0.14);
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        --radius: 14px;
+      }
+      html[data-theme='light'] {
+        --bg: #eef0f6;
+        --surface: #ffffff;
+        --surface-2: #f3f4fa;
+        --border: #e1e3ee;
+        --text: #181826;
+        --muted: #6b6b80;
+        --accent: #0984e3;
+        --accent-soft: rgba(9, 132, 227, 0.1);
+        --shadow: 0 8px 30px rgba(60, 60, 100, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+        transition:
+          background 0.25s,
+          color 0.25s;
+      }
+      .wrap {
+        max-width: 940px;
+        margin: 0 auto;
+        padding: 18px 16px 60px;
+      }
+
+      /* ── Header ── */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: -0.3px;
+      }
+      .brand svg {
+        width: 30px;
+        height: 30px;
+      }
+      .brand .lite {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 11px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition: background 0.2s;
+      }
+      .badge.ok {
+        color: var(--ok);
+        border-color: rgba(34, 197, 94, 0.4);
+      }
+      .badge.ok .dot {
+        background: var(--ok);
+        box-shadow: 0 0 8px var(--ok);
+      }
+      .badge.err {
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      .badge.err .dot {
+        background: var(--danger);
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+        color: inherit;
+      }
+      .icon-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text);
+        transition: 0.15s;
+      }
+      .icon-btn:hover {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .btn {
+        padding: 9px 16px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        transition: 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        filter: brightness(1.08);
+      }
+      .btn.ghost-danger {
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+
+      /* ── Drop zone ── */
+      .drop {
+        border-radius: var(--radius);
+        padding: 22px;
+        text-align: center;
+        color: var(--muted);
+        transition: 0.18s;
+        cursor: pointer;
+        background: var(--surface);
+      }
+      .drop:hover,
+      .drop.over {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+      .drop strong {
+        color: var(--text);
+      }
+      .drop .formats {
+        display: inline-flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .pill {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .src-line {
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      /* ── Device tabs ── */
+      .seg {
+        display: inline-flex;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 4px;
+        gap: 4px;
+      }
+      .seg button {
+        padding: 7px 18px;
+        border-radius: 9px;
+        font-weight: 600;
+        font-size: 13px;
+        background: transparent;
+        color: var(--muted);
+        transition: 0.15s;
+      }
+      .seg button.active {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 2px 8px var(--accent-soft);
+      }
+
+      /* ── Remote shells ── */
+      .remote {
+        max-width: 320px;
+        margin: 6px auto 0;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        padding: 22px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+      .key {
+        flex: 1;
+        min-height: 44px;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 600;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: 0.12s;
+        padding: 6px;
+      }
+      .key:hover:not(:disabled) {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        transform: translateY(-1px);
+      }
+      .key:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+      .key:disabled {
+        opacity: 0.32;
+        cursor: not-allowed;
+      }
+      .key.empty {
+        opacity: 0.45;
+        cursor: default;
+        color: var(--muted);
+      }
+      .key[draggable='true'] {
+        cursor: grab;
+      }
+      .key[draggable='true']:active {
+        cursor: grabbing;
+      }
+      .key.drop-target {
+        border-style: solid !important;
+        border-color: var(--accent) !important;
+        background: var(--accent-soft) !important;
+        box-shadow: 0 0 0 2px var(--accent);
+        opacity: 1;
+      }
+      .key.round {
+        flex: 0 0 52px;
+        height: 52px;
+        border-radius: 50%;
+      }
+      .key.power {
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      .key.accent {
+        color: var(--accent);
+      }
+      .key svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Edit-mode affordances: grab cursor everywhere you can rearrange */
+      body.edit-mode .key,
+      body.edit-mode .chip {
+        cursor: grab;
+      }
+      body.edit-mode .key:active,
+      body.edit-mode .chip:active {
+        cursor: grabbing;
+      }
+      body.edit-mode .remote {
+        outline-offset: 6px;
+      }
+
+      /* Toggle switch */
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        user-select: none;
+      }
+      .switch input {
+        display: none;
+      }
+      .switch .track {
+        width: 38px;
+        height: 22px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        position: relative;
+        transition: 0.2s;
+        flex: none;
+      }
+      .switch .thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition: 0.2s;
+      }
+      .switch input:checked + .track {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .switch input:checked + .track .thumb {
+        left: 18px;
+        background: #fff;
+      }
+      .switch input:checked ~ .switch-label {
+        color: var(--accent);
+      }
+
+      .rockers {
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+      }
+      .rocker {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+      }
+      .rocker .key {
+        background: transparent;
+        border: none;
+        min-height: 40px;
+      }
+      .rocker .lbl {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        letter-spacing: 1px;
+        padding: 2px 0;
+      }
+      .midcol {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+      }
+
+      /* D-pad */
+      .dpad {
+        position: relative;
+        width: 170px;
+        height: 170px;
+        margin: 0 auto;
+      }
+      .dpad .key {
+        position: absolute;
+      }
+      .dpad .up,
+      .dpad .down {
+        left: 55px;
+        width: 60px;
+      }
+      .dpad .up {
+        top: 0;
+        height: 55px;
+        border-radius: 14px 14px 6px 6px;
+      }
+      .dpad .down {
+        bottom: 0;
+        height: 55px;
+        border-radius: 6px 6px 14px 14px;
+      }
+      .dpad .left,
+      .dpad .right {
+        top: 55px;
+        height: 60px;
+        width: 55px;
+      }
+      .dpad .left {
+        left: 0;
+        border-radius: 14px 6px 6px 14px;
+      }
+      .dpad .right {
+        right: 0;
+        border-radius: 6px 14px 14px 6px;
+      }
+      .dpad .ok {
+        top: 55px;
+        left: 55px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        font-size: 12px;
+        background: var(--accent-soft);
+      }
+
+      .numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      /* AC temperature display */
+      .temp-display {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .temp-display .val {
+        font-size: 38px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        flex: 1;
+        text-align: center;
+      }
+      .temp-display .val small {
+        font-size: 18px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .temp-display .key.round {
+        font-size: 24px;
+        flex: 0 0 56px;
+        height: 56px;
+      }
+
+      .empty-hint {
+        text-align: center;
+        color: var(--muted);
+        padding: 30px 10px;
+        font-size: 13px;
+      }
+
+      /* All-buttons grid */
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        padding: 8px 14px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        transition: 0.12s;
+      }
+      .chip:hover {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .chip[draggable='true'] {
+        cursor: grab;
+      }
+      .chip[draggable='true']:active {
+        cursor: grabbing;
+      }
+      #extraHost.drop-target {
+        outline-offset: 4px;
+        border-radius: 12px;
+      }
+      .hint {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .section-label.row-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .reset-btn {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--accent);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 10px;
+      }
+      .reset-btn:hover {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .grid.empty-pool {
+        min-height: 56px;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+      .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 14px 0 8px;
+      }
+
+      /* ── Terminal log (always dark) ── */
+      .term-card {
+        padding: 0;
+        overflow: hidden;
+        border-color: #1d1d1d;
+      }
+      .term-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        background: #15151b;
+        border-bottom: 1px solid #262626;
+      }
+      .term-head .lights {
+        display: flex;
+        gap: 6px;
+      }
+      .term-head .lights i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .term-head .lights i:nth-child(1) {
+        background: #ff5f56;
+      }
+      .term-head .lights i:nth-child(2) {
+        background: #ffbd2e;
+      }
+      .term-head .lights i:nth-child(3) {
+        background: #27c93f;
+      }
+      .term-head span {
+        color: #8b8b9e;
+        font-size: 12px;
+        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      }
+      .term-head button {
+        margin-left: auto;
+        background: transparent;
+        color: #8b8b9e;
+        font-size: 11px;
+        font-family: ui-monospace, monospace;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 3px 9px;
+      }
+      .term-head button:hover {
+        color: #fff;
+        border-color: #555;
+      }
+      .term {
+        background: #0b0b0d;
+        color: #d4d4d4;
+        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        padding: 12px 14px;
+        height: 220px;
+        overflow-y: auto;
+      }
+      .term .ln {
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .term .ts {
+        color: #5a5a66;
+      }
+      .term .tx {
+        color: #5eead4;
+      }
+      .term .rx {
+        color: #fbbf24;
+      }
+      .term .err {
+        color: #f87171;
+      }
+      .term .ok {
+        color: #86efac;
+      }
+      .term .info {
+        color: #9ca3af;
+      }
+      .term::-webkit-scrollbar {
+        width: 8px;
+      }
+      .term::-webkit-scrollbar-thumb {
+        background: #2a2a2a;
+        border-radius: 4px;
+      }
+
+      /* ── Toast ── */
+      #toasts {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 100;
+      }
+      .toast {
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        animation: pop 0.2s ease;
+      }
+      .toast.success {
+        border-color: var(--ok);
+        color: var(--ok);
+      }
+      .toast.error {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+      .toast.warning {
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+
+      @media (max-width: 560px) {
+        .controls-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <rect width="64" height="64" rx="14" fill="#1A1A2E" />
+            <path
+              d="M20,30 L44,30 C46,30 48,32 48,34 L48,46 C48,48 46,50 44,50 L20,50 C18,50 16,48 16,46 L16,34 C16,32 18,30 20,30 Z"
+              fill="#FF8A50"
+            />
+            <circle cx="42" cy="40" r="3" fill="#FFAB40" />
+            <path
+              d="M30,20 A14,14 0 0,1 30,12"
+              stroke="#FFAB40"
+              stroke-width="3"
+              fill="none"
+              stroke-linecap="round"
+            />
+          </svg>
+          iRemote <span class="lite">Lite</span>
+        </div>
+
+        <div class="spacer"></div>
+
+        <span class="badge" id="serverBadge"
+          ><span class="dot"></span
+          ><span id="serverText">Connecting…</span></span
+        >
+        <span class="badge" id="deviceBadge"
+          ><span class="dot"></span><span id="deviceText">No device</span></span
+        >
+
+        <button
+          class="icon-btn"
+          id="themeToggle"
+          onclick="toggleTheme()"
+          title="Toggle light / dark"
+          aria-label="Toggle theme"
+        >
+          <svg id="iconMoon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            id="iconSun"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            style="display: none"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path
+              d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+            />
+          </svg>
+        </button>
+      </header>
+
+      <!-- Connection -->
+      <div class="card">
+        <div
+          class="controls-row"
+          style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap"
+        >
+          <button
+            class="btn primary"
+            id="btnConnect"
+            onclick="connectOcrustar()"
+          >
+            ⚡ Connect Ocrustar
+          </button>
+          <button
+            class="btn ghost-danger"
+            id="btnDisconnect"
+            onclick="disconnectDevice()"
+            style="display: none"
+          >
+            Disconnect
+          </button>
+          <span class="muted" style="font-size: 12px">
+            Requires <code>python server.py</code> running on
+            <code>localhost:7890</code>.
+          </span>
+        </div>
+      </div>
+
+      <!-- Import -->
+      <div class="card">
+        <h2>📂 Import codes</h2>
+        <div
+          class="drop"
+          id="drop"
+          onclick="document.getElementById('fileInput').click()"
+        >
+          <div><strong>Drop IR files here</strong> or click to browse</div>
+          <div class="formats">
+            <span class="pill">IRDB .csv</span>
+            <span class="pill">Flipper .ir</span>
+          </div>
+          <div class="src-line muted" id="srcLine"></div>
+        </div>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".csv,.ir"
+          multiple
+          style="display: none"
+          onchange="handleFiles(this.files)"
+        />
+      </div>
+
+      <!-- Remote -->
+      <div class="card">
+        <h2 style="justify-content: space-between; flex-wrap: wrap; gap: 10px">
+          <span>🎛️ Remote</span>
+          <span
+            style="
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              flex-wrap: wrap;
+            "
+          >
+            <label
+              class="switch"
+              title="Edit mode: rearrange buttons instead of sending"
+            >
+              <input
+                type="checkbox"
+                id="editToggle"
+                onchange="setEditMode(this.checked)"
+              />
+              <span class="track"><span class="thumb"></span></span>
+              <span class="switch-label">✏️ Edit</span>
+            </label>
+            <span class="seg" id="deviceSeg">
+              <button data-device="tv" class="active" onclick="setDevice('tv')">
+                📺 TV
+              </button>
+              <button data-device="ac" onclick="setDevice('ac')">❄️ AC</button>
+              <button data-device="other" onclick="setDevice('other')">
+                ⋯ Other
+              </button>
+            </span>
+          </span>
+        </h2>
+        <div id="remoteHost"></div>
+        <div id="extraHost"></div>
+      </div>
+
+      <!-- Log -->
+      <div class="card term-card">
+        <div class="term-head">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <span>iremote — log</span>
+          <button onclick="clearLog()">clear</button>
+        </div>
+        <div class="term" id="term"></div>
+      </div>
+    </div>
+
+    <div id="toasts"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script>
+      'use strict';
+
+      // ═══════════════════════════════════════════════════
+      //  STATE
+      // ═══════════════════════════════════════════════════
+      let socket = null;
+      let deviceConnected = false;
+      let buttons = []; // imported buttons: {name, pulses, freq}
+      let device = 'tv';
+      let acTemp = 24;
+      // manual slot assignments per device: { tv: {slotKey: btnIndex}, ac: {...} }
+      let manualAssign = { tv: {}, ac: {} };
+      // buttons explicitly pulled out of the layout (kept out of auto-match too)
+      let unassigned = { tv: new Set(), ac: new Set() };
+      let dragIndex = null; // button index currently being dragged
+      let editMode = false; // edit = rearrange (drag); off = press to send
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      // ═══════════════════════════════════════════════════
+      //  THEME
+      // ═══════════════════════════════════════════════════
+      function applyThemeIcons() {
+        const light = document.documentElement.dataset.theme === 'light';
+        document.getElementById('iconMoon').style.display = light ? 'none' : '';
+        document.getElementById('iconSun').style.display = light ? '' : 'none';
+      }
+      function toggleTheme() {
+        const html = document.documentElement;
+        html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('iremote_lite_theme', html.dataset.theme);
+        applyThemeIcons();
+      }
+      applyThemeIcons();
+
+      // ═══════════════════════════════════════════════════
+      //  TERMINAL LOG  &  TOASTS
+      // ═══════════════════════════════════════════════════
+      function log(msg, cls = 'info') {
+        const term = document.getElementById('term');
+        const ts = new Date().toLocaleTimeString('en-GB');
+        const ln = document.createElement('div');
+        ln.className = 'ln';
+        ln.innerHTML =
+          `<span class="ts">${ts}</span> <span class="${cls}">` +
+          msg.replace(/</g, '&lt;') +
+          `</span>`;
+        term.appendChild(ln);
+        term.scrollTop = term.scrollHeight;
+      }
+      function clearLog() {
+        document.getElementById('term').innerHTML = '';
+      }
+      function toast(msg, type = 'info') {
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.textContent = msg;
+        document.getElementById('toasts').appendChild(el);
+        setTimeout(() => el.remove(), 2600);
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  SOCKET.IO  (Python backend on :7890)
+      // ═══════════════════════════════════════════════════
+      function initSocket() {
+        const isLocal =
+          location.hostname === 'localhost' ||
+          location.hostname === '127.0.0.1';
+        const url = isLocal ? location.origin : 'http://localhost:7890';
+        socket = io(url, {
+          transports: ['websocket', 'polling'],
+          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+        });
+
+        socket.on('connect', () => {
+          setServerBadge(true);
+          log('Connected to Python backend', 'tx');
+        });
+        socket.on('disconnect', () => {
+          setServerBadge(false);
+          log('Server connection lost', 'err');
+        });
+        socket.on('connect_error', () => setServerBadge(false));
+
+        socket.on('connected', (data) => {
+          deviceConnected = true;
+          setDeviceBadge(data.label || 'Ocrustar');
+          document.getElementById('btnDisconnect').style.display = '';
+          toast(`${data.label || 'Device'} connected`, 'success');
+          log(`Device connected: ${data.label}`, 'tx');
+        });
+        socket.on('disconnected', () => {
+          deviceConnected = false;
+          setDeviceBadge(null);
+          document.getElementById('btnDisconnect').style.display = 'none';
+          log('Device disconnected', 'info');
+        });
+        socket.on('status', (data) => {
+          if (data.connected) {
+            deviceConnected = true;
+            setDeviceBadge(data.type || 'Device');
+            document.getElementById('btnDisconnect').style.display = '';
+          }
+          log(`Backend: pyusb=${data.usb_available ? '✓' : '✕'}`, 'info');
+        });
+        socket.on('error', (data) => {
+          toast(data.msg, 'error');
+          log('ERROR: ' + data.msg, 'err');
+        });
+        socket.on('log', (data) => log(data.msg, data.cls || 'info'));
+        socket.on('transmit_ok', (data) =>
+          log(`Transmit OK (${data.pulses} values)`, 'tx'),
+        );
+      }
+
+      function setServerBadge(ok) {
+        const b = document.getElementById('serverBadge');
+        b.className = 'badge ' + (ok ? 'ok' : 'err');
+        document.getElementById('serverText').textContent = ok
+          ? 'Server OK'
+          : 'Offline';
+      }
+      function setDeviceBadge(label) {
+        const b = document.getElementById('deviceBadge');
+        b.className = 'badge ' + (label ? 'ok' : '');
+        document.getElementById('deviceText').textContent =
+          label || 'No device';
+      }
+
+      function connectOcrustar() {
+        if (!socket || !socket.connected) {
+          toast('Server not connected', 'error');
+          return;
+        }
+        log('Connecting to Ocrustar…', 'info');
+        socket.emit('connect_ocrustar');
+      }
+      function disconnectDevice() {
+        if (socket && socket.connected) socket.emit('disconnect_device');
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  TRANSMIT
+      // ═══════════════════════════════════════════════════
+      function transmitPulses(pulses, freq = 38000) {
+        if (!deviceConnected) {
+          toast('Connect a device first', 'warning');
+          return false;
+        }
+        if (!socket || !socket.connected) {
+          toast('Server not connected', 'error');
+          return false;
+        }
+        socket.emit('transmit', { pulses, freq });
+        feedback();
+        return true;
+      }
+      function sendBtn(btn) {
+        if (!btn) return;
+        if (transmitPulses(btn.pulses, btn.freq || 38000))
+          log(`TX  ${btn.name}  (${btn.pulses.length} pulses)`, 'tx');
+      }
+
+      // Light click + flash feedback on transmit
+      let audioCtx = null;
+      function feedback() {
+        try {
+          if (!audioCtx)
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.frequency.value = 1800;
+          g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+          g.gain.exponentialRampToValueAtTime(
+            0.001,
+            audioCtx.currentTime + 0.05,
+          );
+          o.start();
+          o.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {}
+        if (navigator.vibrate) navigator.vibrate(25);
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  IR PROTOCOL ENCODERS  (ported from base index.html)
+      // ═══════════════════════════════════════════════════
+      function necEncode(addr, cmd) {
+        const p = [9000, -4500];
+        const eb = (b) => {
+          for (let i = 0; i < 8; i++) {
+            p.push(560);
+            p.push((b >> i) & 1 ? -1690 : -560);
+          }
+        };
+        eb(addr);
+        eb(~addr & 0xff);
+        eb(cmd);
+        eb(~cmd & 0xff);
+        p.push(560, -45000);
+        return p;
+      }
+      function necExtEncode(addrHi, addrLo, cmd) {
+        const p = [9000, -4500];
+        const eb = (b) => {
+          for (let i = 0; i < 8; i++) {
+            p.push(560);
+            p.push((b >> i) & 1 ? -1690 : -560);
+          }
+        };
+        eb(addrLo);
+        eb(addrHi);
+        eb(cmd);
+        eb(~cmd & 0xff);
+        p.push(560, -45000);
+        return p;
+      }
+      function samsung32Encode(addr, cmd) {
+        const p = [4500, -4500];
+        const eb = (b) => {
+          for (let i = 0; i < 8; i++) {
+            p.push(560);
+            p.push((b >> i) & 1 ? -1690 : -560);
+          }
+        };
+        eb(addr);
+        eb(addr);
+        eb(cmd);
+        eb(~cmd & 0xff);
+        p.push(560, -45000);
+        return p;
+      }
+      function rc5Encode(addr, cmd) {
+        const H = 889;
+        const bits = [1, cmd < 64 ? 1 : 0, 0];
+        for (let i = 4; i >= 0; i--) bits.push((addr >> i) & 1);
+        for (let i = 5; i >= 0; i--) bits.push(((cmd & 0x3f) >> i) & 1);
+        const raw = [];
+        for (const b of bits) {
+          if (b === 0) raw.push(H, -H);
+          else raw.push(-H, H);
+        }
+        const merged = [raw[0]];
+        for (let i = 1; i < raw.length; i++) {
+          const last = merged[merged.length - 1];
+          if ((last > 0 && raw[i] > 0) || (last < 0 && raw[i] < 0))
+            merged[merged.length - 1] += raw[i];
+          else merged.push(raw[i]);
+        }
+        return merged;
+      }
+      function sonyEncode(addr, cmd, bits = 12) {
+        const p = [];
+        for (let rep = 0; rep < 3; rep++) {
+          p.push(2400, -600);
+          for (let i = 0; i < 7; i++) {
+            p.push((cmd >> i) & 1 ? 1200 : 600);
+            p.push(-600);
+          }
+          const addrBits = bits === 15 ? 8 : 5;
+          for (let i = 0; i < addrBits; i++) {
+            p.push((addr >> i) & 1 ? 1200 : 600);
+            p.push(-600);
+          }
+          p[p.length - 1] = -45000;
+        }
+        return p;
+      }
+      function encodeProtocol(proto, addr, cmd) {
+        switch ((proto || '').toLowerCase().replace(/_/g, '')) {
+          case 'nec':
+          case 'nec1':
+            return necEncode(addr & 0xff, cmd & 0xff);
+          case 'necext':
+          case 'necx1':
+          case 'necx2':
+          case 'nec42':
+            return necExtEncode((addr >> 8) & 0xff, addr & 0xff, cmd & 0xff);
+          case 'samsung32':
+          case 'samsung':
+            return samsung32Encode(addr & 0xff, cmd & 0xff);
+          case 'rc5':
+          case 'rc5x':
+            return rc5Encode(addr & 0x1f, cmd & 0x3f);
+          case 'sirc':
+          case 'sirc12':
+          case 'sony':
+          case 'sony12':
+            return sonyEncode(addr, cmd, 12);
+          case 'sirc15':
+          case 'sony15':
+            return sonyEncode(addr, cmd, 15);
+          case 'sirc20':
+          case 'sony20':
+            return sonyEncode(addr, cmd, 20);
+          default:
+            return necEncode(addr & 0xff, cmd & 0xff);
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  FILE PARSERS  (.csv IRDB, .ir Flipper)
+      // ═══════════════════════════════════════════════════
+      function parseFlipperHex(hex) {
+        const bytes = hex
+          .trim()
+          .split(/\s+/)
+          .map((b) => parseInt(b, 16))
+          .filter((n) => !isNaN(n));
+        let v = 0;
+        for (let i = 0; i < bytes.length; i++) v |= bytes[i] << (i * 8);
+        return v;
+      }
+
+      function parseFlipperIR(text) {
+        const out = [];
+        const blocks = text
+          .split('#')
+          .map((b) => b.trim())
+          .filter(Boolean);
+        for (const block of blocks) {
+          const f = {};
+          block.split('\n').forEach((l) => {
+            const i = l.indexOf(':');
+            if (i > 0)
+              f[l.substring(0, i).trim().toLowerCase()] = l
+                .substring(i + 1)
+                .trim();
+          });
+          if (f.filetype) continue;
+          if (!f.name) continue;
+          const type = (f.type || '').toLowerCase();
+          let pulses = null;
+          if (type === 'raw') {
+            const data = (f.data || '')
+              .split(/\s+/)
+              .map(Number)
+              .filter((n) => !isNaN(n));
+            pulses = data.map((v, i) =>
+              i % 2 === 0 ? Math.abs(v) : -Math.abs(v),
+            );
+          } else if (type === 'parsed') {
+            pulses = encodeProtocol(
+              f.protocol || '',
+              parseFlipperHex(f.address || '0'),
+              parseFlipperHex(f.command || '0'),
+            );
+          }
+          if (pulses && pulses.length)
+            out.push({
+              name: f.name.replace(/_/g, ' '),
+              pulses,
+              freq: Number(f.frequency) || 38000,
+            });
+        }
+        return out;
+      }
+
+      function parseIRDBCsv(text) {
+        const out = [];
+        const lines = text
+          .split('\n')
+          .slice(1)
+          .filter((l) => l.trim() && l.includes(','));
+        for (const line of lines) {
+          const cols = line.split(',').map((s) => s.trim());
+          if (cols.length < 5) continue;
+          const [funcName, protocol, device, subdevice, func] = cols;
+          const d = parseInt(device),
+            s = parseInt(subdevice),
+            fn = parseInt(func);
+          if (isNaN(d) || isNaN(fn)) continue;
+          const pulses = encodeProtocol(
+            protocol,
+            d | ((isNaN(s) ? 0 : s) << 8),
+            fn,
+          );
+          if (pulses.length)
+            out.push({
+              name: (funcName || 'Button').replace(/_/g, ' '),
+              pulses,
+              freq: 38000,
+            });
+        }
+        return out;
+      }
+
+      // ── Drag & drop ──
+      const drop = document.getElementById('drop');
+      ['dragenter', 'dragover'].forEach((ev) =>
+        drop.addEventListener(ev, (e) => {
+          e.preventDefault();
+          drop.classList.add('over');
+        }),
+      );
+      ['dragleave', 'drop'].forEach((ev) =>
+        drop.addEventListener(ev, (e) => {
+          e.preventDefault();
+          drop.classList.remove('over');
+        }),
+      );
+      drop.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+      async function handleFiles(files) {
+        const sources = [];
+        const collected = [];
+        for (const file of files) {
+          const text = await file.text();
+          const name = file.name.toLowerCase();
+          let parsed = [];
+          if (name.endsWith('.ir')) parsed = parseFlipperIR(text);
+          else if (name.endsWith('.csv')) parsed = parseIRDBCsv(text);
+          else {
+            toast(`Unsupported file: ${file.name}`, 'warning');
+            continue;
+          }
+          if (parsed.length) {
+            collected.push(...parsed);
+            sources.push(`${file.name} (${parsed.length})`);
+            log(`Parsed ${parsed.length} buttons from ${file.name}`, 'rx');
+          } else {
+            toast(`No buttons found in ${file.name}`, 'warning');
+            log(`No buttons found in ${file.name}`, 'err');
+          }
+        }
+        if (collected.length) {
+          buttons = collected;
+          // indices are tied to this button set — start fresh
+          manualAssign = { tv: {}, ac: {} };
+          unassigned = { tv: new Set(), ac: new Set() };
+          document.getElementById('srcLine').innerHTML =
+            '✓ Loaded: ' + sources.join(' · ');
+          toast(`Imported ${collected.length} buttons`, 'success');
+          renderRemote();
+        }
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  NAME → SLOT MATCHING
+      // ═══════════════════════════════════════════════════
+      const norm = (s) =>
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, ' ')
+          .trim();
+
+      // First button matching any regex that isn't in the `skip` set wins.
+      function find(skip, ...regexes) {
+        for (const b of buttons) {
+          if (skip.has(b)) continue;
+          const n = norm(b.name);
+          if (regexes.some((re) => re.test(n))) {
+            skip.add(b);
+            return b;
+          }
+        }
+        return null;
+      }
+      function findDigit(skip, d) {
+        for (const b of buttons) {
+          if (skip.has(b)) continue;
+          const toks = norm(b.name).split(' ');
+          if (toks.includes(String(d)) || toks.includes('num' + d)) {
+            skip.add(b);
+            return b;
+          }
+        }
+        return null;
+      }
+
+      // Slot specs: { key, regs } for regex auto-match, or { key, digit } for numbers.
+      const TV_SLOTS = [
+        { key: 'power', regs: [/\bpower\b|\bpwr\b|on off|standby/] },
+        { key: 'input', regs: [/\b(input|source|av|tv av|tv input)\b/] },
+        { key: 'mute', regs: [/\bmute\b/] },
+        {
+          key: 'volUp',
+          regs: [/vol(ume)?\b.*\b(up|plus|raise)|\bvol\b.*\bu\b/, /^vol\b.*\+/],
+        },
+        { key: 'volDn', regs: [/vol(ume)?\b.*\b(down|dn|minus|lower)/] },
+        { key: 'chUp', regs: [/(ch(annel)?|prog(ram)?)\b.*\b(up|plus|next)/] },
+        { key: 'chDn', regs: [/(ch(annel)?|prog(ram)?)\b.*\b(down|dn|prev)/] },
+        {
+          key: 'up',
+          regs: [/^(up|nav up|cursor up|arrow up|key up|navigate up)$/],
+        },
+        {
+          key: 'down',
+          regs: [/^(down|nav down|cursor down|arrow down|key down)$/],
+        },
+        {
+          key: 'left',
+          regs: [/^(left|nav left|cursor left|arrow left|key left)$/],
+        },
+        {
+          key: 'right',
+          regs: [/^(right|nav right|cursor right|arrow right|key right)$/],
+        },
+        { key: 'ok', regs: [/\b(ok|enter|select)\b/] },
+        { key: 'menu', regs: [/\bmenu\b/] },
+        { key: 'home', regs: [/\bhome\b/] },
+        { key: 'back', regs: [/\b(back|return)\b/] },
+        { key: 'exit', regs: [/\bexit\b/] },
+        ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => ({
+          key: 'num' + d,
+          digit: d,
+        })),
+      ];
+      const AC_SLOTS = [
+        { key: 'power', regs: [/\bpower\b|on off|standby/] },
+        {
+          key: 'tempUp',
+          regs: [/temp(erature)?\b.*\b(up|plus)|warmer|\bup\b/],
+        },
+        {
+          key: 'tempDn',
+          regs: [/temp(erature)?\b.*\b(down|dn|minus)|cooler|\bdown\b/],
+        },
+        { key: 'mode', regs: [/\bmode\b/] },
+        { key: 'fan', regs: [/\bfan\b/] },
+        { key: 'swing', regs: [/\b(swing|oscillat|louver|air dir)\b/] },
+        { key: 'timer', regs: [/\btimer\b/] },
+        { key: 'on', regs: [/^on$/] },
+        { key: 'off', regs: [/^off$/] },
+      ];
+
+      // Resolve slots → {m: {slotKey: button}, used: Set}.
+      // Manual (drag-and-drop) assignments take priority; the rest auto-match.
+      function resolveSlots(specs) {
+        const used = new Set(); // buttons actually placed in a slot
+        const m = {};
+        const manual = manualAssign[device] || {};
+        const blocked = unassigned[device] || new Set();
+        // buttons to keep out of auto-matching: the ones explicitly unassigned…
+        const skip = new Set();
+        blocked.forEach((idx) => buttons[idx] && skip.add(buttons[idx]));
+        // 1) honour manual assignments (these override a block)
+        for (const sp of specs) {
+          const idx = manual[sp.key];
+          if (idx != null && buttons[idx]) {
+            m[sp.key] = buttons[idx];
+            used.add(buttons[idx]);
+            skip.add(buttons[idx]);
+          }
+        }
+        // 2) auto-match whatever slots are still empty
+        for (const sp of specs) {
+          if (m[sp.key]) continue;
+          const b =
+            sp.digit != null
+              ? findDigit(skip, sp.digit)
+              : find(skip, ...sp.regs);
+          if (b) {
+            m[sp.key] = b;
+            used.add(b);
+          }
+        }
+        return { m, used };
+      }
+
+      // ── Drag-and-drop assignment ──
+      function dragStart(e, idx) {
+        dragIndex = idx;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+      }
+      function dragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        e.currentTarget.classList.add('drop-target');
+      }
+      function dragLeave(e) {
+        e.currentTarget.classList.remove('drop-target');
+      }
+      function dragIdxFrom(e) {
+        let idx = dragIndex;
+        if (idx == null) {
+          const t = e.dataTransfer.getData('text/plain');
+          idx = t !== '' ? parseInt(t, 10) : null;
+        }
+        return idx != null && !isNaN(idx) && buttons[idx] ? idx : null;
+      }
+      function dropOnSlot(e, slotKey) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drop-target');
+        const idx = dragIdxFrom(e);
+        dragIndex = null;
+        if (idx == null) return;
+        const map = (manualAssign[device] = manualAssign[device] || {});
+        // a button lives in only one slot — drop it from any previous slot
+        for (const k in map) if (map[k] === idx) delete map[k];
+        map[slotKey] = idx;
+        unassigned[device].delete(idx); // assigning overrides a previous block
+        log(`Assigned "${buttons[idx].name}" → ${slotKey}`, 'info');
+        renderRemote();
+      }
+      function dropOnPool(e) {
+        e.preventDefault();
+        document.getElementById('extraHost').classList.remove('drop-target');
+        const idx = dragIdxFrom(e);
+        dragIndex = null;
+        if (idx == null) return;
+        unassign(idx);
+      }
+      // Pull a button out of the layout: drop any manual placement and keep it
+      // out of auto-matching so even an auto-matched button stays unassigned.
+      function unassign(idx) {
+        const map = manualAssign[device];
+        if (map) for (const k in map) if (map[k] === idx) delete map[k];
+        unassigned[device].add(idx);
+        log(`Unassigned "${buttons[idx].name}"`, 'info');
+        renderRemote();
+      }
+      function clearSlot(slotKey, idx) {
+        if (idx != null && buttons[idx]) unassign(idx);
+      }
+      // Restore automatic name-matching for the current device
+      function resetLayout() {
+        manualAssign[device] = {};
+        unassigned[device] = new Set();
+        log(`Reset ${device.toUpperCase()} layout to auto-match`, 'info');
+        renderRemote();
+      }
+      function escAttr(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;');
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  RENDER
+      // ═══════════════════════════════════════════════════
+      function setEditMode(on) {
+        editMode = on;
+        document.body.classList.toggle('edit-mode', on);
+        log(
+          on
+            ? 'Edit mode ON — drag to rearrange'
+            : 'Edit mode OFF — press to send',
+          'info',
+        );
+        renderRemote();
+      }
+
+      function setDevice(d) {
+        device = d;
+        document
+          .querySelectorAll('#deviceSeg button')
+          .forEach((b) => b.classList.toggle('active', b.dataset.device === d));
+        renderRemote();
+      }
+
+      // Build a remote key bound to slot `slotKey`. Filled keys are clickable and
+      // draggable; empty keys are greyed but still accept drops.
+      function key(slotKey, btn, label, cls = '') {
+        const idx = btn ? buttons.indexOf(btn) : -1;
+        if (editMode) {
+          const dnd =
+            `ondragover="dragOver(event)" ondragleave="dragLeave(event)" ` +
+            `ondrop="dropOnSlot(event,'${slotKey}')"`;
+          if (btn) {
+            return (
+              `<button class="key ${cls}" draggable="true" ` +
+              `title="${escAttr(btn.name)} — drag to move · double-click to clear" ` +
+              `ondragstart="dragStart(event,${idx})" ondblclick="clearSlot('${slotKey}',${idx})" ` +
+              `${dnd}>${label}</button>`
+            );
+          }
+          return (
+            `<button class="key empty ${cls}" title="Empty — drop a button here" ${dnd}>` +
+            `${label}</button>`
+          );
+        }
+        // Normal mode: press to send; empty slots are inert.
+        if (btn) {
+          return (
+            `<button class="key ${cls}" title="${escAttr(btn.name)}" ` +
+            `onclick="sendBtn(buttons[${idx}])">${label}</button>`
+          );
+        }
+        return `<button class="key empty ${cls}" disabled title="No code assigned">${label}</button>`;
+      }
+
+      function renderRemote() {
+        const host = document.getElementById('remoteHost');
+        const extra = document.getElementById('extraHost');
+        extra.innerHTML = '';
+
+        if (!buttons.length) {
+          host.innerHTML =
+            '<div class="empty-hint">No codes loaded yet.<br>Drop an IRDB <b>.csv</b> or Flipper <b>.ir</b> file above to populate this remote.</div>';
+          return;
+        }
+
+        let used;
+        if (device === 'tv') {
+          const r = resolveSlots(TV_SLOTS);
+          used = r.used;
+          host.innerHTML = renderTV(r.m);
+        } else if (device === 'ac') {
+          const r = resolveSlots(AC_SLOTS);
+          used = r.used;
+          host.innerHTML = renderAC(r.m);
+        } else {
+          used = new Set();
+          host.innerHTML = '';
+        }
+
+        renderExtra(used, extra);
+      }
+
+      function renderTV(m) {
+        const arrow = { up: '▲', down: '▼', left: '◀', right: '▶' };
+        return `
+          <div class="remote">
+            <div class="row">
+              ${key('power', m.power, '⏻', 'power round')}
+              <div style="flex:1"></div>
+              ${key('input', m.input, 'INPUT')}
+            </div>
+
+            <div class="rockers">
+              <div class="rocker">
+                ${key('volUp', m.volUp, '+')}
+                <div class="lbl">VOL</div>
+                ${key('volDn', m.volDn, '−')}
+              </div>
+              <div class="midcol">
+                ${key('mute', m.mute, '🔇', 'round')}
+              </div>
+              <div class="rocker">
+                ${key('chUp', m.chUp, '+')}
+                <div class="lbl">CH</div>
+                ${key('chDn', m.chDn, '−')}
+              </div>
+            </div>
+
+            <div class="dpad">
+              ${key('up', m.up, arrow.up, 'up')}
+              ${key('left', m.left, arrow.left, 'left')}
+              ${key('ok', m.ok, 'OK', 'ok')}
+              ${key('right', m.right, arrow.right, 'right')}
+              ${key('down', m.down, arrow.down, 'down')}
+            </div>
+
+            <div class="row">
+              ${key('menu', m.menu, 'Menu')}
+              ${key('home', m.home, 'Home')}
+              ${key('back', m.back, 'Back')}
+              ${key('exit', m.exit, 'Exit')}
+            </div>
+
+            <div class="numpad">
+              ${[1, 2, 3, 4, 5, 6, 7, 8, 9]
+                .map((d) => key('num' + d, m['num' + d], String(d)))
+                .join('')}
+              <div></div>
+              ${key('num0', m.num0, '0')}
+              <div></div>
+            </div>
+          </div>`;
+      }
+
+      function renderAC(m) {
+        // temp +/- adjust the local display and fire the matched up/down code
+        _acTempUp = m.tempUp || null;
+        _acTempDn = m.tempDn || null;
+        const tempKey = (slotKey, btn, label) => {
+          const dir = slotKey === 'tempUp' ? 1 : -1;
+          if (editMode) {
+            const dnd =
+              `ondragover="dragOver(event)" ondragleave="dragLeave(event)" ` +
+              `ondrop="dropOnSlot(event,'${slotKey}')"`;
+            if (btn) {
+              const idx = buttons.indexOf(btn);
+              return (
+                `<button class="key round accent" draggable="true" ` +
+                `title="${escAttr(btn.name)} — drag to move · double-click to clear" ` +
+                `ondragstart="dragStart(event,${idx})" ondblclick="clearSlot('${slotKey}',${idx})" ` +
+                `${dnd}>${label}</button>`
+              );
+            }
+            return `<button class="key round accent empty" title="Empty — drop a button here" ${dnd}>${label}</button>`;
+          }
+          if (btn)
+            return `<button class="key round accent" title="${escAttr(btn.name)}" onclick="adjustTemp(${dir})">${label}</button>`;
+          return `<button class="key round accent empty" disabled title="No code assigned">${label}</button>`;
+        };
+        return `
+          <div class="remote">
+            <div class="row">
+              ${key('power', m.power, '⏻', 'power round')}
+            </div>
+
+            <div class="temp-display">
+              ${tempKey('tempDn', m.tempDn, '−')}
+              <div class="val" id="acTempVal">${acTemp}<small>°C</small></div>
+              ${tempKey('tempUp', m.tempUp, '+')}
+            </div>
+
+            <div class="row">
+              ${key('mode', m.mode, 'Mode')}
+              ${key('fan', m.fan, 'Fan')}
+            </div>
+            <div class="row">
+              ${key('swing', m.swing, 'Swing')}
+              ${key('timer', m.timer, 'Timer')}
+            </div>
+            <div class="row">
+              ${key('on', m.on, 'On')}
+              ${key('off', m.off, 'Off')}
+            </div>
+          </div>`;
+      }
+
+      // store matched up/down for AC temp buttons
+      let _acTempUp = null,
+        _acTempDn = null;
+      function adjustTemp(d) {
+        acTemp = Math.max(16, Math.min(30, acTemp + d));
+        const el = document.getElementById('acTempVal');
+        if (el) el.innerHTML = `${acTemp}<small>°C</small>`;
+        const btn = d > 0 ? _acTempUp : _acTempDn;
+        sendBtn(btn);
+      }
+
+      function renderExtra(used, extra) {
+        // Buttons not placed into a slot (or all of them, for "Other")
+        let list =
+          device === 'other' ? buttons : buttons.filter((b) => !used.has(b));
+        const isOther = device === 'other';
+        if (isOther) {
+          extra.innerHTML =
+            `<div class="section-label">All buttons · ${list.length}</div>` +
+            `<div class="grid">${list.map(chipHtml).join('')}</div>`;
+          return;
+        }
+        // TV / AC — normal mode: list unassigned codes as plain, sendable chips.
+        if (!editMode) {
+          if (!list.length) {
+            extra.innerHTML = '';
+            return;
+          }
+          extra.innerHTML =
+            `<div class="section-label">Unassigned buttons · ${list.length}</div>` +
+            `<div class="grid">${list.map(chipHtml).join('')}</div>`;
+          return;
+        }
+        // TV / AC — edit mode: always keep the labelled drop area visible (even when
+        // empty) so assigned buttons can be dragged back out to be reassigned.
+        const grid = list.length
+          ? `<div class="grid">${list.map(chipHtml).join('')}</div>`
+          : `<div class="grid empty-pool">All buttons assigned — drag one off a key to drop it back here.</div>`;
+        const customized =
+          Object.keys(manualAssign[device] || {}).length > 0 ||
+          (unassigned[device] && unassigned[device].size > 0);
+        const reset = customized
+          ? `<button class="reset-btn" onclick="resetLayout()">↺ Reset to auto-match</button>`
+          : '';
+        extra.innerHTML =
+          `<div class="section-label row-label">Unassigned buttons · ${list.length}${reset}</div>` +
+          `<div class="hint">Drag any button onto a remote key to assign it. Drop it back here — or double-click a key — to unassign (even auto-matched ones).</div>` +
+          grid;
+      }
+
+      function chipHtml(b) {
+        const idx = buttons.indexOf(b);
+        if (editMode) {
+          return (
+            `<button class="chip" draggable="true" ` +
+            `ondragstart="dragStart(event,${idx})" title="Drag onto a key to assign">` +
+            `${escAttr(b.name)}</button>`
+          );
+        }
+        return `<button class="chip" onclick="sendBtn(buttons[${idx}])">${escAttr(b.name)}</button>`;
+      }
+
+      // ═══════════════════════════════════════════════════
+      //  INIT
+      // ═══════════════════════════════════════════════════
+      // Dropping a slotted button back onto the list unassigns it
+      const extraHost = document.getElementById('extraHost');
+      extraHost.addEventListener('dragover', (e) => {
+        if (!editMode) return;
+        e.preventDefault();
+        extraHost.classList.add('drop-target');
+      });
+      extraHost.addEventListener('dragleave', (e) => {
+        if (e.target === extraHost) extraHost.classList.remove('drop-target');
+      });
+      extraHost.addEventListener('drop', (e) => {
+        if (editMode) dropOnPool(e);
+      });
+
+      initSocket();
+      renderRemote();
+      log('iRemote Lite ready. Connect your Ocrustar to begin.', 'info');
+    </script>
+  </body>
+</html>
